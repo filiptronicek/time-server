@@ -1,6 +1,6 @@
 #[macro_use] extern crate rocket;
 use rocket::serde::{Serialize, json::Json};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{time::{SystemTime, UNIX_EPOCH}};
 
 #[derive(Serialize)]
 #[serde(crate = "rocket::serde")]
@@ -12,8 +12,8 @@ struct ResultDefault {
 #[derive(Serialize)]
 #[serde(crate = "rocket::serde")]
 struct ResultWithDifference {
-    diff_ms: u64,
-    diff_s: u64,
+    diff_ms: i128,
+    diff_s: i128,
     unix_ms: u64,
     unix: u64
 }
@@ -51,7 +51,7 @@ enum Status {
     #[serde(rename = "success")]
     Success,
     #[serde(rename = "error")]
-    Error
+    _Error
 }
 
 #[get("/time")]
@@ -62,7 +62,7 @@ fn time() -> Json<Response> {
     Json(response)
 }
 
-fn round_to_nearest(number: u64, denominator: u64) -> u64 {
+fn round_to_nearest(number: i128, denominator: i128) -> i128 {
     (number + (denominator / 2)) / denominator * denominator
 }
 
@@ -70,7 +70,7 @@ fn round_to_nearest(number: u64, denominator: u64) -> u64 {
 fn time_query(ts: u64) -> Json<ResponseWithDifference> {
     let (unix_ms, unix) = get_unix_times();
 
-    let diff_ms = unix_ms - ts;
+    let diff_ms = unix_ms as i128 - ts as i128;
     let diff_s = round_to_nearest(diff_ms, 1000) / 1000;
 
     let result = ResultWithDifference { unix_ms, unix, diff_s, diff_ms };
