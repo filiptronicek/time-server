@@ -4,6 +4,12 @@ This is a simple command-line interface to the time server.
 
 > **Warning:** This is a work in progress.
 
+## Installation
+
+```sh
+cargo install clock-check
+```
+
 ## Usage
 
 ```sh
