@@ -1,7 +1,14 @@
 [package]
-name = "grrs"
+name = "clock-check"
 version = "0.1.0"
-edition = "2021"
+authors = ["Filip Troníček <filip.tronicek@seznam.cz>"]
+license = "MIT"
+description = "A tool for getting your system clock precision"
+readme = "README.md"
+homepage = "https://github.com/filiptronicek/time-server-rust"
+repository = "https://github.com/filiptronicek/time-server-rust"
+keywords = ["cli", "time"]
+categories = ["command-line-utilities"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
