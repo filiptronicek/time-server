@@ -22,4 +22,4 @@ A simple time server written in Rust, which you can use to ensure your clients' 
 
 ### `clock-check` CLI
 
-The `clock-check` CLI is a simple tool that you can use to consume and use the data from the time server. More info in the [README](./cli/README.md) in the `clock-check` directory.
+The `clock-check` CLI is a simple tool that you can use to consume and use the data from the time server. More info in its [README](./cli/README.md).
