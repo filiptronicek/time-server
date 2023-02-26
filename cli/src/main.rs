@@ -1,6 +1,9 @@
 use std::error::Error;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+extern crate serde;
+extern crate serde_json;
+
 use serde::Deserialize;
 
 #[derive(Deserialize)]
