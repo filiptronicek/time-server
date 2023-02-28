@@ -16,6 +16,7 @@ A simple time server written in Rust, which you can use to ensure your clients' 
     ```
 2. Run the server
     ```bash
+    cd server
     cargo run
     ```
 3. The server will be running on port 8000

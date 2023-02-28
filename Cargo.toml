@@ -1,14 +1,6 @@
-[package]
-name = "time-server-rust"
-version = "0.1.0"
-edition = "2021"
+[workspace]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-chrono = "0.4.19"
-serde = "1.0.130"
-
-[dependencies.rocket]
-version = "0.5.0-rc.2"
-features = ["json"]
+members = [
+    "server",
+    "cli"
+]
