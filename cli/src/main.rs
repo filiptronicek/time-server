@@ -35,6 +35,10 @@ struct Args {
     /// A timeout in miliseconds
     #[arg(short, long, default_value = "1000")]
     timeout: u64,
+
+    /// Try to account for network latency. This is not very accurate and should be considered experimental
+    #[arg(short, long, default_value = "false")]
+    latency_in_account: bool,
 }
 
 #[derive(Deserialize)]
@@ -87,6 +91,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         );
         return Ok(());
     }
+
+    let route_to_server_ms = (resp.result.unix_ms - client_unix_ms) / 2;
 
     let unix_difference = if args.seconds {
         resp.result.diff_s.unwrap()
