@@ -1,0 +1,4 @@
+tasks:
+  - init: cargo build
+    command: cargo watch -x run
+  - command: cd cli; cargo run

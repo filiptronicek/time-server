@@ -31,6 +31,10 @@ struct Args {
     /// Use seconds instead of milliseconds
     #[arg(long, default_value = "false")]
     seconds: bool,
+
+    /// A timeout in miliseconds
+    #[arg(short, long, default_value = "1000")]
+    timeout: u64,
 }
 
 #[derive(Deserialize)]
@@ -54,14 +58,22 @@ fn get_unix_times() -> (u64, u64) {
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
 
-    let (unix_ms, _) = get_unix_times();
+    let (client_unix_ms, _) = get_unix_times();
     let url = if !args.bare {
-        format!("{}?ts={}", args.server, unix_ms)
+        format!("{}?ts={}", args.server, client_unix_ms)
     } else {
         args.server
     };
 
     let resp = reqwest::blocking::get(&url)?;
+    let (client_end_unix_ms, _) = get_unix_times();
+
+    let client_diff_ms = client_end_unix_ms - client_unix_ms;
+    if client_diff_ms > args.timeout {
+        println!("Request took too long ({}ms)", client_diff_ms);
+        return Ok(());
+    }
+
     let resp: ResponseWithDifference = resp.json()?;
 
     if args.bare {
