@@ -11,7 +11,6 @@ use serde::Deserialize;
 #[serde(crate = "serde")]
 struct ResultWithDifference {
     diff_ms: Option<i128>,
-    diff_s: Option<i128>,
     unix_ms: u64,
     unix: u64,
 }
@@ -69,7 +68,16 @@ fn main() -> Result<(), Box<dyn Error>> {
         args.server
     };
 
-    let resp = reqwest::blocking::get(&url)?;
+    let server_response = reqwest::blocking::get(&url)?;
+
+    let resp = match server_response.error_for_status() {
+        Ok(resp) => resp,
+        Err(err) => {
+            println!("Error: {}", err);
+            return Ok(());
+        }
+    };
+
     let (client_end_unix_ms, _) = get_unix_times();
 
     let client_diff_ms = client_end_unix_ms - client_unix_ms;
@@ -78,7 +86,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         return Ok(());
     }
 
-    let resp: ResponseWithDifference = resp.json()?;
+    let resp = match resp.json::<ResponseWithDifference>() {
+        Ok(resp) => resp,
+        Err(err) => {
+            println!("Server response parsing Error: {}", err);
+            return Ok(());
+        }
+    };
 
     if args.bare {
         println!(
@@ -94,18 +108,33 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let route_to_server_ms = (resp.result.unix_ms - client_unix_ms) / 2;
 
-    let unix_difference = if args.seconds {
-        resp.result.diff_s.unwrap()
-    } else {
-        resp.result.diff_ms.unwrap()
+    let unix_difference = match resp.result.diff_ms {
+        Some(diff) => diff,
+        None => {
+            println!("Server did not return a difference");
+            return Ok(());
+        }
     };
+
+    let unix_difference = if args.latency_in_account {
+        unix_difference - route_to_server_ms as i128
+    } else {
+        unix_difference
+    };
+
     let ahead_or_behind = if unix_difference > 0 {
         "behind"
     } else {
         "ahead"
     };
 
-    if unix_difference == 0 {
+    let unix_difference = if args.seconds {
+        unix_difference as f32 / 1000f32
+    } else {
+        unix_difference as f32
+    };
+
+    if unix_difference == 0f32 {
         println!("Your clock is in sync!");
         return Ok(());
     }
