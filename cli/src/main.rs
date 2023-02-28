@@ -32,7 +32,7 @@ struct Args {
     #[arg(long, default_value = "false")]
     seconds: bool,
 
-    /// A timeout in miliseconds
+    /// A timeout in milliseconds
     #[arg(short, long, default_value = "1000")]
     timeout: u64,
 
