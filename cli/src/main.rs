@@ -8,6 +8,8 @@ extern crate serde;
 extern crate utils;
 extern crate serde_json;
 
+use anyhow::Result;
+
 /// A simple program to get the time from a time server
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -31,19 +33,44 @@ struct Args {
     /// Try to account for network latency. This is not very accurate and should be considered experimental
     #[arg(short, long, default_value = "false")]
     latency_in_account: bool,
+
+    /// Use NTP to get the time instead of a time server (experimental)
+    #[arg(short, long, default_value = "false")]
+    use_ntp: bool,
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+pub async fn get_unix_ntp_time(pool_ntp: &str) -> Result<nippy::Instant, Box<dyn Error>> {
+    let response = nippy::request(pool_ntp).await?;
+    let timestamp = response.transmit_timestamp;
+    Ok(nippy::Instant::from(timestamp))
+}
+
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
 
     let (client_unix_ms, _) = get_unix_times();
+
+    if args.use_ntp {
+        let ntp_server = if args.server == "http://localhost:8000/time" {
+            "time.cloudflare.com:123"
+        } else {
+            &args.server
+        };
+        let ntp_result = get_unix_ntp_time(ntp_server).await.unwrap();
+        let ntp_ms = ntp_result.secs() * 1000 + ntp_result.subsec_nanos() as i64 / 1_000_000;
+        println!("Difference: {}ms", (ntp_ms as i128) - (client_unix_ms as i128));
+        return Ok(());
+    }
+
     let url = if !args.bare {
         format!("{}?ts={}", args.server, client_unix_ms)
     } else {
         args.server
     };
 
-    let server_response = reqwest::blocking::get(&url)?;
+    let server_response = reqwest::get(&url).await?;
 
     let resp = match server_response.error_for_status() {
         Ok(resp) => resp,
@@ -61,7 +88,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         return Ok(());
     }
 
-    let resp = match resp.json::<Response>() {
+    let resp = match resp.json::<Response>().await {
         Ok(resp) => resp,
         Err(err) => {
             println!("Server response parsing Error: {}", err);
