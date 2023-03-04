@@ -1,4 +1,4 @@
 tasks:
   - init: cargo build
-    command: cargo watch -x "run --bin time-server-rust"
+    command: cargo watch -x "run --bin time-server"
   - command: cargo watch -x "run --bin clock-check"
