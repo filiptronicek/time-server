@@ -1,7 +1,7 @@
 use clap::Parser;
 use std::error::Error;
 use utils::get_unix_times;
-use utils::ResponseWithDifference;
+use utils::Response;
 
 extern crate clap;
 extern crate serde;
@@ -61,7 +61,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         return Ok(());
     }
 
-    let resp = match resp.json::<ResponseWithDifference>() {
+    let resp = match resp.json::<Response>() {
         Ok(resp) => resp,
         Err(err) => {
             println!("Server response parsing Error: {}", err);

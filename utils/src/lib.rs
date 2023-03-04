@@ -22,14 +22,7 @@ pub fn round_to_nearest(number: i128, denominator: i128) -> i128 {
 
 #[derive(Serialize, Deserialize)]
 #[serde()]
-pub struct ResultDefault {
-    pub unix_ms: u64,
-    pub unix: u64
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde()]
-pub struct ResultWithDifference {
+pub struct Result {
     pub diff_ms: Option<i128>,
     pub diff_s: Option<i128>,
     pub unix_ms: u64,
@@ -40,14 +33,7 @@ pub struct ResultWithDifference {
 #[serde()]
 pub struct Response {
     pub status: Status,
-    pub result: ResultDefault
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde()]
-pub struct ResponseWithDifference {
-    pub status: Status,
-    pub result: ResultWithDifference
+    pub result: Result
 }
 
 #[derive(Serialize, Deserialize)]
