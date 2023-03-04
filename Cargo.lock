@@ -232,6 +232,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+ "utils",
 ]
 
 [[package]]
@@ -1980,6 +1981,10 @@ dependencies = [
  "idna",
  "percent-encoding",
 ]
+
+[[package]]
+name = "utils"
+version = "0.1.0"
 
 [[package]]
 name = "valuable"

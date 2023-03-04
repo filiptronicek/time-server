@@ -1,9 +1,9 @@
 use clap::Parser;
 use std::error::Error;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 extern crate clap;
 extern crate serde;
+extern crate utils;
 extern crate serde_json;
 use serde::Deserialize;
 
@@ -46,22 +46,10 @@ struct ResponseWithDifference {
     result: ResultWithDifference,
 }
 
-fn get_unix_times() -> (u64, u64) {
-    let start = SystemTime::now();
-    let since_the_epoch = start
-        .duration_since(UNIX_EPOCH)
-        .expect("Time went backwards");
-
-    let unix = since_the_epoch.as_secs();
-    let unix_ms = unix * 1000 + since_the_epoch.subsec_nanos() as u64 / 1_000_000;
-    (unix_ms, unix);
-    return (unix_ms, unix);
-}
-
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
 
-    let (client_unix_ms, _) = get_unix_times();
+    let (client_unix_ms, _) = utils::get_unix_times();
     let url = if !args.bare {
         format!("{}?ts={}", args.server, client_unix_ms)
     } else {
@@ -78,7 +66,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     };
 
-    let (client_end_unix_ms, _) = get_unix_times();
+    let (client_end_unix_ms, _) = utils::get_unix_times();
 
     let client_diff_ms = client_end_unix_ms - client_unix_ms;
     if client_diff_ms > args.timeout {
