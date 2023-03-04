@@ -1738,6 +1738,7 @@ dependencies = [
  "chrono",
  "rocket",
  "serde",
+ "utils",
 ]
 
 [[package]]
@@ -1985,6 +1986,11 @@ dependencies = [
 [[package]]
 name = "utils"
 version = "0.1.0"
+dependencies = [
+ "rocket",
+ "serde",
+ "serde_json",
+]
 
 [[package]]
 name = "valuable"

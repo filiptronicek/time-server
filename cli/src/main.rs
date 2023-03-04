@@ -1,19 +1,12 @@
 use clap::Parser;
 use std::error::Error;
+use utils::get_unix_times;
+use utils::ResponseWithDifference;
 
 extern crate clap;
 extern crate serde;
 extern crate utils;
 extern crate serde_json;
-use serde::Deserialize;
-
-#[derive(Deserialize)]
-#[serde(crate = "serde")]
-struct ResultWithDifference {
-    diff_ms: Option<i128>,
-    unix_ms: u64,
-    unix: u64,
-}
 
 /// A simple program to get the time from a time server
 #[derive(Parser, Debug)]
@@ -40,16 +33,10 @@ struct Args {
     latency_in_account: bool,
 }
 
-#[derive(Deserialize)]
-#[serde(crate = "serde")]
-struct ResponseWithDifference {
-    result: ResultWithDifference,
-}
-
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
 
-    let (client_unix_ms, _) = utils::get_unix_times();
+    let (client_unix_ms, _) = get_unix_times();
     let url = if !args.bare {
         format!("{}?ts={}", args.server, client_unix_ms)
     } else {
@@ -66,7 +53,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     };
 
-    let (client_end_unix_ms, _) = utils::get_unix_times();
+    let (client_end_unix_ms, _) = get_unix_times();
 
     let client_diff_ms = client_end_unix_ms - client_unix_ms;
     if client_diff_ms > args.timeout {
