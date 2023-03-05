@@ -60,7 +60,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     }
 
     let (client_unix_ms, _) = get_unix_times();
-    let mut unix_difference: i128;
+    let mut unix_difference: f64;
 
     if args.use_ntp {
         let ntp_server = if args.server == "http://localhost:8000/time" {
@@ -103,11 +103,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
         );
 
         unix_difference = 
-            (ntp_receive_ms as i128 - client_unix_ms as i128) +
-            (ntp_transmit_ms as i128 - client_receive_time as i128);
+            (ntp_receive_ms - client_unix_ms as f64) +
+            (ntp_transmit_ms - client_receive_time as f64);
 
         if args.latency_in_account {
-            unix_difference = unix_difference / 2;
+            unix_difference = unix_difference / 2f64;
         }
         
     } else {
@@ -158,7 +158,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         let route_to_server_ms = (resp.result.unix_ms - client_unix_ms) / 2;
 
         unix_difference = match resp.result.diff_ms {
-            Some(diff) => diff,
+            Some(diff) => diff as f64,
             None => {
                 println!("Server did not return a difference");
                 return Ok(());
@@ -166,25 +166,25 @@ async fn main() -> Result<(), Box<dyn Error>> {
         };
 
         unix_difference = if args.latency_in_account {
-            unix_difference - route_to_server_ms as i128
+            unix_difference - route_to_server_ms as f64
         } else {
             unix_difference
         };
     }
 
-    let ahead_or_behind = if unix_difference > 0 {
+    let ahead_or_behind = if unix_difference > 0f64 {
         "behind"
     } else {
         "ahead"
     };
 
     let unix_difference = if args.seconds {
-        unix_difference as f32 / 1000f32
+        unix_difference / 1000f64
     } else {
-        unix_difference as f32
+        unix_difference
     };
 
-    if unix_difference == 0f32 {
+    if unix_difference == 0f64 {
         println!("Your clock is in sync!");
         return Ok(());
     }
