@@ -38,6 +38,10 @@ struct Args {
     /// This will use time.cloudflare.com:123 by default, but you can specify a different server with the --server flag
     #[arg(long, default_value = "false")]
     use_ntp: bool,
+
+    /// Print the help message for the markdown version of this program
+    #[arg(long, hide = true)]
+    markdown_help: bool,
 }
 
 async fn get_unix_ntp_time(pool_ntp: &str) -> Result<nippy::Instant, Box<dyn Error>> {
@@ -49,6 +53,11 @@ async fn get_unix_ntp_time(pool_ntp: &str) -> Result<nippy::Instant, Box<dyn Err
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
+
+    if args.markdown_help {
+        clap_markdown::print_help_markdown::<Args>();
+        return Ok(());
+    }
 
     let (client_unix_ms, _) = get_unix_times();
     let mut unix_difference: i128;
