@@ -2,6 +2,8 @@
 name = "time_server_utils"
 version = "0.1.0"
 edition = "2021"
+description = "Utilities for the time server project"
+license = "MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
