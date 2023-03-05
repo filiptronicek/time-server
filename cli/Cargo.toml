@@ -1,6 +1,6 @@
 [package]
 name = "clock-check"
-version = "0.3.0-beta.0"
+version = "0.3.0-beta.1"
 authors = ["Filip Troníček <filip.tronicek@seznam.cz>"]
 license = "MIT"
 description = "A tool for getting your system clock precision"

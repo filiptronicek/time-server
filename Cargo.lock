@@ -238,7 +238,7 @@ dependencies = [
 
 [[package]]
 name = "clock-check"
-version = "0.3.0-beta.0"
+version = "0.3.0-beta.1"
 dependencies = [
  "anyhow",
  "clap",
