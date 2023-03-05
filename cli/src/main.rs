@@ -5,8 +5,10 @@ use utils::Response;
 
 extern crate clap;
 extern crate serde;
-extern crate utils;
+extern crate time_server_utils as utils;
 extern crate serde_json;
+
+use anyhow::Result;
 
 /// A simple program to get the time from a time server
 #[derive(Parser, Debug)]
@@ -31,71 +33,118 @@ struct Args {
     /// Try to account for network latency. This is not very accurate and should be considered experimental
     #[arg(short, long, default_value = "false")]
     latency_in_account: bool,
+
+    /// Use NTP to get the time instead of a time server (experimental).
+    /// This will use time.cloudflare.com:123 by default, but you can specify a different server with the --server flag
+    #[arg(short, long, default_value = "false")]
+    use_ntp: bool,
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+async fn get_unix_ntp_time(pool_ntp: &str) -> Result<nippy::Instant, Box<dyn Error>> {
+    let response = nippy::request(pool_ntp).await?;
+    let timestamp = response.transmit_timestamp;
+    Ok(nippy::Instant::from(timestamp))
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
 
     let (client_unix_ms, _) = get_unix_times();
-    let url = if !args.bare {
-        format!("{}?ts={}", args.server, client_unix_ms)
+    let mut unix_difference: i128;
+
+    if args.use_ntp {
+        let ntp_server = if args.server == "http://localhost:8000/time" {
+            "time.cloudflare.com:123"
+        } else {
+            &args.server
+        };
+        let ntp_result = get_unix_ntp_time(ntp_server).await.unwrap();
+        let ntp_ms = ntp_result.secs() * 1000 + ntp_result.subsec_nanos() as i64 / 1_000_000;
+
+        if args.bare {
+            println!(
+                "{}",
+                if args.seconds {
+                    ntp_result.secs()
+                } else {
+                    ntp_ms
+                }
+            );
+            return Ok(());
+        }
+
+        unix_difference = (ntp_ms - client_unix_ms as i64) as i128;
+
+        let route_to_server_ms = (ntp_ms - client_unix_ms as i64) / 2;
+
+        unix_difference = if args.latency_in_account {
+            unix_difference - route_to_server_ms as i128
+        } else {
+            unix_difference
+        };
     } else {
-        args.server
-    };
-
-    let server_response = reqwest::blocking::get(&url)?;
-
-    let resp = match server_response.error_for_status() {
-        Ok(resp) => resp,
-        Err(err) => {
-            println!("Error: {}", err);
-            return Ok(());
-        }
-    };
-
-    let (client_end_unix_ms, _) = get_unix_times();
-
-    let client_diff_ms = client_end_unix_ms - client_unix_ms;
-    if client_diff_ms > args.timeout {
-        println!("Request took too long ({}ms)", client_diff_ms);
-        return Ok(());
-    }
-
-    let resp = match resp.json::<Response>() {
-        Ok(resp) => resp,
-        Err(err) => {
-            println!("Server response parsing Error: {}", err);
-            return Ok(());
-        }
-    };
-
-    if args.bare {
-        println!(
-            "{}",
-            if args.seconds {
-                resp.result.unix
-            } else {
-                resp.result.unix_ms
+        let url = if !args.bare {
+            format!("{}?ts={}", args.server, client_unix_ms)
+        } else {
+            args.server
+        };
+    
+        let server_response = reqwest::get(&url).await?;
+    
+        let resp = match server_response.error_for_status() {
+            Ok(resp) => resp,
+            Err(err) => {
+                println!("Error: {}", err);
+                return Ok(());
             }
-        );
-        return Ok(());
-    }
-
-    let route_to_server_ms = (resp.result.unix_ms - client_unix_ms) / 2;
-
-    let unix_difference = match resp.result.diff_ms {
-        Some(diff) => diff,
-        None => {
-            println!("Server did not return a difference");
+        };
+    
+        let (client_end_unix_ms, _) = get_unix_times();
+    
+        let client_diff_ms = client_end_unix_ms - client_unix_ms;
+        if client_diff_ms > args.timeout {
+            println!("Request took too long ({}ms)", client_diff_ms);
             return Ok(());
         }
-    };
+    
+        let resp = match resp.json::<Response>().await {
+            Ok(resp) => resp,
+            Err(err) => {
+                println!("Server response parsing Error: {}", err);
+                return Ok(());
+            }
+        };
+    
+        if args.bare {
+            println!(
+                "{}",
+                if args.seconds {
+                    resp.result.unix
+                } else {
+                    resp.result.unix_ms
+                }
+            );
+            return Ok(());
+        }
+    
+        let route_to_server_ms = (resp.result.unix_ms - client_unix_ms) / 2;
+    
+        unix_difference = match resp.result.diff_ms {
+            Some(diff) => diff,
+            None => {
+                println!("Server did not return a difference");
+                return Ok(());
+            }
+        };
+    
+        unix_difference = if args.latency_in_account {
+            unix_difference - route_to_server_ms as i128
+        } else {
+            unix_difference
+        };
+    }
 
-    let unix_difference = if args.latency_in_account {
-        unix_difference - route_to_server_ms as i128
-    } else {
-        unix_difference
-    };
 
     let ahead_or_behind = if unix_difference > 0 {
         "behind"
