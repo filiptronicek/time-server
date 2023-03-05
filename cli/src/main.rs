@@ -36,7 +36,7 @@ struct Args {
 
     /// Use NTP to get the time instead of a time server (experimental).
     /// This will use time.cloudflare.com:123 by default, but you can specify a different server with the --server flag
-    #[arg(short, long, default_value = "false")]
+    #[arg(long, default_value = "false")]
     use_ntp: bool,
 }
 
