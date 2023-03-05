@@ -1,12 +1,13 @@
 use clap::Parser;
+use nippy::protocol::Packet;
 use std::error::Error;
 use utils::get_unix_times;
 use utils::Response;
 
 extern crate clap;
 extern crate serde;
-extern crate time_server_utils as utils;
 extern crate serde_json;
+extern crate time_server_utils as utils;
 
 use anyhow::Result;
 
@@ -44,10 +45,9 @@ struct Args {
     markdown_help: bool,
 }
 
-async fn get_unix_ntp_time(pool_ntp: &str) -> Result<nippy::Instant, Box<dyn Error>> {
+async fn get_unix_ntp_time(pool_ntp: &str) -> Result<Packet, Box<dyn Error>> {
     let response = nippy::request(pool_ntp).await?;
-    let timestamp = response.transmit_timestamp;
-    Ok(nippy::Instant::from(timestamp))
+    Ok(response)
 }
 
 #[tokio::main]
@@ -69,38 +69,56 @@ async fn main() -> Result<(), Box<dyn Error>> {
             &args.server
         };
         let ntp_result = get_unix_ntp_time(ntp_server).await.unwrap();
-        let ntp_ms = ntp_result.secs() * 1000 + ntp_result.subsec_nanos() as i64 / 1_000_000;
+        let (client_receive_time, _) = get_unix_times();
+
+        let ntp_receive_time = ntp_result.receive_timestamp;
+        let ntp_transmit_time = ntp_result.transmit_timestamp;
+        let ntp_receive_instant = nippy::Instant::from(ntp_receive_time);
+        let ntp_transmit_instant = nippy::Instant::from(ntp_transmit_time);
+        let ntp_receive_ms = ntp_receive_instant.secs() as f64 * 1000f64
+            + ntp_receive_instant.subsec_nanos() as f64 / 1_000_000f64;
+        let ntp_transmit_ms = ntp_transmit_instant.secs() as f64 * 1000f64
+            + ntp_transmit_instant.subsec_nanos() as f64 / 1_000_000f64;
 
         if args.bare {
             println!(
                 "{}",
                 if args.seconds {
-                    ntp_result.secs()
+                    ntp_receive_instant.secs() as f64
                 } else {
-                    ntp_ms
+                    ntp_receive_ms
                 }
             );
             return Ok(());
         }
 
-        unix_difference = (ntp_ms - client_unix_ms as i64) as i128;
+        // Print T1, T2, T3, T4
+        println!(
+            "
+            T1: {}ms
+            T2: {}ms
+            T3: {}ms
+            T4: {}ms",
+            client_unix_ms, ntp_receive_ms, ntp_transmit_ms, client_receive_time
+        );
 
-        let route_to_server_ms = (ntp_ms - client_unix_ms as i64) / 2;
+        unix_difference = 
+            (ntp_receive_ms as i128 - client_unix_ms as i128) +
+            (ntp_transmit_ms as i128 - client_receive_time as i128);
 
-        unix_difference = if args.latency_in_account {
-            unix_difference - route_to_server_ms as i128
-        } else {
-            unix_difference
-        };
+        if args.latency_in_account {
+            unix_difference = unix_difference / 2;
+        }
+        
     } else {
         let url = if !args.bare {
             format!("{}?ts={}", args.server, client_unix_ms)
         } else {
             args.server
         };
-    
+
         let server_response = reqwest::get(&url).await?;
-    
+
         let resp = match server_response.error_for_status() {
             Ok(resp) => resp,
             Err(err) => {
@@ -108,15 +126,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 return Ok(());
             }
         };
-    
+
         let (client_end_unix_ms, _) = get_unix_times();
-    
+
         let client_diff_ms = client_end_unix_ms - client_unix_ms;
         if client_diff_ms > args.timeout {
             println!("Request took too long ({}ms)", client_diff_ms);
             return Ok(());
         }
-    
+
         let resp = match resp.json::<Response>().await {
             Ok(resp) => resp,
             Err(err) => {
@@ -124,7 +142,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 return Ok(());
             }
         };
-    
+
         if args.bare {
             println!(
                 "{}",
@@ -136,9 +154,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
             );
             return Ok(());
         }
-    
+
         let route_to_server_ms = (resp.result.unix_ms - client_unix_ms) / 2;
-    
+
         unix_difference = match resp.result.diff_ms {
             Some(diff) => diff,
             None => {
@@ -146,14 +164,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 return Ok(());
             }
         };
-    
+
         unix_difference = if args.latency_in_account {
             unix_difference - route_to_server_ms as i128
         } else {
             unix_difference
         };
     }
-
 
     let ahead_or_behind = if unix_difference > 0 {
         "behind"
