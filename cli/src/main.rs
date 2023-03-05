@@ -61,6 +61,19 @@ async fn main() -> Result<(), Box<dyn Error>> {
         };
         let ntp_result = get_unix_ntp_time(ntp_server).await.unwrap();
         let ntp_ms = ntp_result.secs() * 1000 + ntp_result.subsec_nanos() as i64 / 1_000_000;
+
+        if args.bare {
+            println!(
+                "{}",
+                if args.seconds {
+                    ntp_result.secs()
+                } else {
+                    ntp_ms
+                }
+            );
+            return Ok(());
+        }
+
         unix_difference = (ntp_ms - client_unix_ms as i64) as i128;
 
         let route_to_server_ms = (ntp_ms - client_unix_ms as i64) / 2;
