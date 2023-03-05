@@ -60,7 +60,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     }
 
     let (client_unix_ms, _) = get_unix_times();
-    let mut unix_difference: f64;
+    let mut unix_difference: f32;
 
     if args.use_ntp {
         let ntp_server = if args.server == "http://localhost:8000/time" {
@@ -92,22 +92,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
             return Ok(());
         }
 
-        // Print T1, T2, T3, T4
-        println!(
-            "
-            T1: {}ms
-            T2: {}ms
-            T3: {}ms
-            T4: {}ms",
-            client_unix_ms, ntp_receive_ms, ntp_transmit_ms, client_receive_time
-        );
-
         unix_difference = 
-            (ntp_receive_ms - client_unix_ms as f64) +
-            (ntp_transmit_ms - client_receive_time as f64);
+            ((ntp_receive_ms - client_unix_ms as f64) +
+            (ntp_transmit_ms - client_receive_time as f64)) as f32;
 
         if args.latency_in_account {
-            unix_difference = unix_difference / 2f64;
+            unix_difference = unix_difference / 2f32;
         }
         
     } else {
@@ -158,7 +148,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         let route_to_server_ms = (resp.result.unix_ms - client_unix_ms) / 2;
 
         unix_difference = match resp.result.diff_ms {
-            Some(diff) => diff as f64,
+            Some(diff) => diff as f32,
             None => {
                 println!("Server did not return a difference");
                 return Ok(());
@@ -166,32 +156,32 @@ async fn main() -> Result<(), Box<dyn Error>> {
         };
 
         unix_difference = if args.latency_in_account {
-            unix_difference - route_to_server_ms as f64
+            unix_difference - route_to_server_ms as f32
         } else {
             unix_difference
         };
     }
 
-    let ahead_or_behind = if unix_difference > 0f64 {
+    let ahead_or_behind = if unix_difference > 0f32 {
         "behind"
     } else {
         "ahead"
     };
 
     let unix_difference = if args.seconds {
-        unix_difference / 1000f64
+        unix_difference / 1000f32
     } else {
         unix_difference
     };
 
-    if unix_difference == 0f64 {
+    if unix_difference == 0f32 {
         println!("Your clock is in sync!");
         return Ok(());
     }
 
     println!(
         "Your clock is {:?}{}s {}",
-        unix_difference.abs(),
+        (unix_difference.abs() * 100.).round() / 100.,
         if args.seconds { "" } else { "m" },
         ahead_or_behind
     );
