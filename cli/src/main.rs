@@ -5,7 +5,7 @@ use utils::Response;
 
 extern crate clap;
 extern crate serde;
-extern crate utils;
+extern crate time_server_utils as utils;
 extern crate serde_json;
 
 use anyhow::Result;

@@ -1,5 +1,7 @@
 #[macro_use] extern crate rocket;
 use rocket::serde::json::Json;
+
+extern crate time_server_utils as utils;
 use utils::{Response, Status, Result};
 use utils::{get_unix_times, round_to_nearest};
 

@@ -238,7 +238,7 @@ dependencies = [
 
 [[package]]
 name = "clock-check"
-version = "0.2.0"
+version = "0.3.0-beta.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -246,8 +246,8 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+ "time_server_utils",
  "tokio",
- "utils",
 ]
 
 [[package]]
@@ -1782,7 +1782,16 @@ dependencies = [
  "chrono",
  "rocket",
  "serde",
- "utils",
+ "time_server_utils",
+]
+
+[[package]]
+name = "time_server_utils"
+version = "0.1.0"
+dependencies = [
+ "rocket",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -2025,15 +2034,6 @@ dependencies = [
  "form_urlencoded",
  "idna",
  "percent-encoding",
-]
-
-[[package]]
-name = "utils"
-version = "0.1.0"
-dependencies = [
- "rocket",
- "serde",
- "serde_json",
 ]
 
 [[package]]
