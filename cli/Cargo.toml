@@ -1,6 +1,6 @@
 [package]
 name = "clock-check"
-version = "0.2.0"
+version = "0.3.0-beta.0"
 authors = ["Filip Troníček <filip.tronicek@seznam.cz>"]
 license = "MIT"
 description = "A tool for getting your system clock precision"
@@ -18,7 +18,7 @@ reqwest = { version = "0.11", features = ["blocking", "json"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 clap = { version = "4.0", features = ["cargo", "derive"] }
-utils = { path = "../utils" }
+utils = { path = "../utils", version = "*" }
 nippy = { version="2", default-features=false, features=["tokio-runtime"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 anyhow = "1"
