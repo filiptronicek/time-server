@@ -1,5 +1,6 @@
 use clap::Parser;
 use nippy::protocol::Packet;
+use reqwest::Url;
 use std::error::Error;
 use utils::get_unix_times;
 use utils::Response;
@@ -101,18 +102,41 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
         
     } else {
+
+        let server_url = Url::parse(&args.server);
+        let server_url = match server_url {
+            Ok(url) => url,
+            Err(err) => {
+                println!("Invalid --server URL: {}", err);
+                return Ok(());
+            }
+        };
+
+        if server_url.scheme() != "http" && server_url.scheme() != "https" {
+            println!("Invalid URL scheme: {}", server_url.scheme());
+            return Ok(());
+        }
+
         let url = if !args.bare {
             format!("{}?ts={}", args.server, client_unix_ms)
         } else {
             args.server
         };
 
-        let server_response = reqwest::get(&url).await?;
+        let server_response = reqwest::get(&url).await;
+
+        let server_response = match server_response {
+            Ok(resp) => resp,
+            Err(err) => {
+                println!("Error: {}", err);
+                return Ok(());
+            }
+        };
 
         let resp = match server_response.error_for_status() {
             Ok(resp) => resp,
             Err(err) => {
-                println!("Error: {}", err);
+                println!("HTTP Error: {}", err);
                 return Ok(());
             }
         };
