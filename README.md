@@ -29,7 +29,8 @@ The `clock-check` CLI is a simple tool that you can use to consume and use the d
 
 These are some public instances of the time server, which you can use to test from the CLI. To use one of these, supply the URL as the `--server` argument to the CLI. If you decide to host one yourself, please add it to this list.
 
-| URL                                     | Description                                                                                                           |
-| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| https://time.filiptronicek.workers.dev/ | A compatible time server hosted on Cloudflare Workers, which is based on the Javascript implementation of the server. |
+| URL                                            | Description                                                                                                           |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| https://time.filiptronicek.workers.dev/        | A compatible time server hosted on Cloudflare Workers, which is based on the Javascript implementation of the server. |
+| https://time-server.filiptronicek.workers.dev/ | A lightweight version of the server running on Cloudflare Workers with WebAssembly.                                   |
 
