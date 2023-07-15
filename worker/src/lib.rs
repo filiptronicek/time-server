@@ -28,50 +28,45 @@ enum APIStatus {
 }
 
 #[event(fetch)]
-async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
-    let router = Router::new();
+async fn main(req: Request, _env: Env, _ctx: Context) -> Result<Response> {
+    let unix_ms = worker::Date::now().as_millis();
+    let unix = unix_ms / 1000;
 
-    router
-        .get("/stamp/:time", |_req, ctx| {
-            let unix_ms = worker::Date::now().as_millis();
-            let unix = unix_ms / 1000;
+    let parsed_url = match req.url() {
+        Ok(url) => url,
+        Err(e) => {
+            println!("Error parsing URL: {:?}", e);
+            return Err(e);
+        }
+    };
 
-            let client_time = match ctx.param("time") {
-                Some(time) => match time.parse::<u64>() {
-                    Ok(parsed_time) => parsed_time,
-                    Err(_) => return Response::error("Bad Request", 400),
-                },
-                None => return Response::error("Bad Request", 400),
-            };
+    let ts_value = parsed_url
+        .query_pairs()
+        .find(|(key, _)| key == "ts")
+        .map(|(_, value)| value.into_owned());
 
-            let client_time_s = client_time / 1000;
-            let diff_ms = unix_ms as i128 - client_time as i128;
-            let diff_s = unix as i128 - client_time_s as i128;
-            let result = APIResult {
-                diff_ms: Some(diff_ms),
-                diff_s: Some(diff_s),
-                unix_ms,
-                unix,
-            };
-            let response = APIResponse {
-                status: APIStatus::Success,
-                result,
-            };
-            Response::from_json(&response)
-        })
-        .get("/stamp", |_req, _ctx| {
-            let unix_ms = worker::Date::now().as_millis();
-            let unix = unix_ms / 1000;
-            Response::from_json(&APIResponse {
-                status: APIStatus::Success,
-                result: APIResult {
-                    diff_ms: None,
-                    diff_s: None,
-                    unix_ms,
-                    unix,
-                },
-            })
-        })
-        .run(req, env)
-        .await
+    let (diff_ms, diff_s) = match ts_value {
+        Some(time) => match time.parse::<u64>() {
+            Ok(client_time) => {
+                let client_time_s = client_time / 1000;
+                let diff_ms = unix_ms as i128 - client_time as i128;
+                let diff_s = unix as i128 - client_time_s as i128;
+                (Some(diff_ms), Some(diff_s))
+            }
+            Err(_) => return Response::error("Bad Request", 400),
+        },
+        None => (None, None),
+    };
+
+    let result = APIResult {
+        diff_ms,
+        diff_s,
+        unix_ms,
+        unix,
+    };
+    let response = APIResponse {
+        status: APIStatus::Success,
+        result,
+    };
+    Response::from_json(&response)
 }
