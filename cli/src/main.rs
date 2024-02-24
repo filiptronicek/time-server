@@ -38,7 +38,7 @@ struct Args {
 
     /// Use NTP to get the time instead of a time server (experimental).
     /// This will use time.cloudflare.com:123 by default, but you can specify a different server with the --server flag
-    #[arg(long, default_value = "false")]
+    #[arg(long, default_value = "true")]
     use_ntp: bool,
 
     /// Print the help message for the markdown version of this program
@@ -63,8 +63,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let (client_unix_ms, _) = get_unix_times();
     let mut unix_difference: f32;
 
-    if args.use_ntp {
-        let ntp_server = if args.server == "http://localhost:8000/time" {
+    // Automatically determine whether to use NTP or HTTP based on the server string
+    let use_ntp = if args.server.starts_with("http://") || args.server.starts_with("https://") {
+        false
+    } else {
+        true
+    };
+
+    if use_ntp || args.use_ntp {
+        let ntp_server = if args.server == "http://localhost:8000/time" || args.server.is_empty() {
             "time.cloudflare.com:123"
         } else {
             &args.server
@@ -93,16 +100,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
             return Ok(());
         }
 
-        unix_difference = 
-            ((ntp_receive_ms - client_unix_ms as f64) +
-            (ntp_transmit_ms - client_receive_time as f64)) as f32;
+        unix_difference = ((ntp_receive_ms - client_unix_ms as f64)
+            + (ntp_transmit_ms - client_receive_time as f64)) as f32;
 
         if args.latency_in_account {
             unix_difference = unix_difference / 2f32;
         }
-        
     } else {
-
         let server_url = Url::parse(&args.server);
         let server_url = match server_url {
             Ok(url) => url,
