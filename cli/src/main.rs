@@ -64,11 +64,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut unix_difference: f32;
 
     // Automatically determine whether to use NTP or HTTP based on the server string
-    let use_ntp = if args.server.starts_with("http://") || args.server.starts_with("https://") {
-        false
-    } else {
-        true
-    };
+    let use_ntp = !(args.server.starts_with("http://") || args.server.starts_with("https://"));
 
     if use_ntp || args.use_ntp {
         let ntp_server = if args.server == "http://localhost:8000/time" || args.server.is_empty() {
@@ -104,7 +100,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             + (ntp_transmit_ms - client_receive_time as f64)) as f32;
 
         if args.latency_in_account {
-            unix_difference = unix_difference / 2f32;
+            unix_difference /= 2f32;
         }
     } else {
         let server_url = Url::parse(&args.server);
