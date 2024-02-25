@@ -1,4 +1,4 @@
-# `time-server-rust`
+# `time-server`
 
 A simple time server written in Rust, which you can use to ensure your clients' clocks are in sync with a server.
 
